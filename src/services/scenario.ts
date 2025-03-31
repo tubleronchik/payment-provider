@@ -86,4 +86,15 @@ export class ScenarioService {
             return { success: false}
         }
     }
+
+    async deleteCustomer(cid: string) {
+        const customer: CustomerModel = new CustomerModel({customerId: cid})
+        try {
+            await this.revolutService.deleteCustomer(customer)
+            return { success: true}
+        } catch (err) {
+            console.error("Deletion failed:", err);
+            return { success: false}
+        }
+    }
 }

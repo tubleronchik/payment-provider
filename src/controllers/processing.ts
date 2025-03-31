@@ -9,6 +9,7 @@ export class ProcessingController {
         this.paymentSuccessful = this.paymentSuccessful.bind(this);
         this.paymentFailed = this.paymentFailed.bind(this);
         this.prolongation = this.prolongation.bind(this)
+        this.unsubscibing = this.unsubscibing.bind(this)
     }
 
     async createOrder(req: Request, res: Response) {
@@ -26,6 +27,7 @@ export class ProcessingController {
     }
 
     async paymentSuccessful(req: Request, res: Response) {
+        console.log(req)
         const { body: { order_id } } = req;
         const result = await this.scenarioService.paymentSuccessful(order_id)
         if (result.success) {
@@ -55,5 +57,16 @@ export class ProcessingController {
             return res.status(201).send()
         }
         return res.status(500).send("Internal Server Error: Prolongation process failed");
+    }
+
+    async unsubscibing(req: Request, res: Response) {
+        const cid = req.params.cid.trim();
+        const orderId = req.params.orderId.trim();
+        const result = await this.scenarioService.deleteCustomer(cid)
+        if (result.success) {
+            await this.scenarioService.paymentFailed(orderId)
+            return res.status(204).json({ message: "Unsubscribed successfully" });
+        }
+        return res.status(500).send("Internal Server Error: Unsubscribing process failed");
     }
 }

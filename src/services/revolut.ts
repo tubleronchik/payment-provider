@@ -45,9 +45,24 @@ export class RevolutService {
         customer.setPaymentId(responseText)
         if (!response.ok) {
             console.log("Failed to get saved payment method in Revolut, response:", responseText)
-            throw new Error("Failed to get saved payment method in Revolut, response:");
+            throw new Error("Failed to get saved payment method in Revolut");
         }
         return customer
+    }
+
+    async deleteCustomer(customer: CustomerModel) {
+        const response = await fetch(
+            `${URL}/api/1.0/customers/${customer.customerId}`,
+              {
+              method: "DELETE",
+              headers: HEADERS
+              },
+        )
+        if (!response.ok) {
+            console.log("Failed to delete customer in Revolut, response:", response)
+            throw new Error("Failed to delete customerin Revolut");
+        }
+        return customer 
     }
 
     async payOrder(payment: PaymentModel) {
