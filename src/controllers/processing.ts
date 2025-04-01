@@ -27,9 +27,14 @@ export class ProcessingController {
     }
 
     async paymentSuccessful(req: Request, res: Response) {
-        console.log(req)
-        const { body: { order_id } } = req;
-        const result = await this.scenarioService.paymentSuccessful(order_id)
+        // @ts-ignore
+        const { body: { order_id }, rawBody } = req;
+        const { 
+            "revolut-signature": revolutSignature, 
+            "revolut-request-timestamp": revolutRequestTimestamp 
+          } = req.headers;
+
+        const result = await this.scenarioService.paymentSuccessful(order_id, rawBody, revolutSignature, revolutRequestTimestamp)
         if (result.success) {
             return res.status(204).send()
         }
@@ -37,8 +42,13 @@ export class ProcessingController {
     }
 
     async paymentFailed(req: Request, res: Response) {
-        const { body: { order_id } } = req;
-        const result = await this.scenarioService.paymentFailed(order_id)
+        // @ts-ignore
+        const { body: { order_id }, rawBody } = req;
+        const { 
+            "revolut-signature": revolutSignature, 
+            "revolut-request-timestamp": revolutRequestTimestamp 
+          } = req.headers;
+        const result = await this.scenarioService.paymentFailed(order_id, rawBody, revolutSignature, revolutRequestTimestamp)
         if (result.success) {
             return res.status(204).send()
         }
@@ -62,9 +72,8 @@ export class ProcessingController {
     async unsubscibing(req: Request, res: Response) {
         const cid = req.params.cid.trim();
         const orderId = req.params.orderId.trim();
-        const result = await this.scenarioService.deleteCustomer(cid)
+        const result = await this.scenarioService.unsubscribing(cid, orderId)
         if (result.success) {
-            await this.scenarioService.paymentFailed(orderId)
             return res.status(204).json({ message: "Unsubscribed successfully" });
         }
         return res.status(500).send("Internal Server Error: Unsubscribing process failed");

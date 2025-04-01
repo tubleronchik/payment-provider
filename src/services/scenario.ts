@@ -1,5 +1,6 @@
 import { OrderModel } from "../models/order.js";
 import { CustomerModel } from "../models/customer.js";
+import { SignatureModel } from "../models/signature.js"
 import { RevolutService } from "../services/revolut.js";
 import { PaymentModel } from "../models/payment.js";
 import { PRSService } from "../services/prs.js";
@@ -31,7 +32,14 @@ export class ScenarioService {
         }
     }
 
-    async paymentSuccessful(order_id: string) {
+    async paymentSuccessful(order_id: string, rawPayload: any, receivedSignature: string | string[], timestamp: string | string[]) {
+        const secret = process.env.REVOLUT_SUCCESS_WEBHOOK_SECRET;
+        const signatureModel = new SignatureModel({ secret, receivedSignature, timestamp, rawPayload})
+        if (!signatureModel.isTimestampValid() || !signatureModel.isSignatureValid()) {
+            console.log("Payment successful webhook: Signature or timestamp are not valid")
+            return { success: false}
+        }
+        console.log("Payment successful webhook: Signature and timestamp are valid")
         try {
             await this.prsService.updateLastPaid(order_id)
             console.log("updateLastPaid successfully.");
@@ -42,7 +50,14 @@ export class ScenarioService {
         }
     }
 
-    async paymentFailed(order_id: string) {
+    async paymentFailed(order_id: string, rawPayload: any, receivedSignature: string | string[], timestamp: string | string[]) {
+        const secret = process.env.REVOLUT_FAILED_WEBHOOK_SECRET;
+        const signatureModel = new SignatureModel({ secret, receivedSignature, timestamp, rawPayload})
+        if (!signatureModel.isTimestampValid() || !signatureModel.isSignatureValid()) {
+            console.log("Payment failed webhook: Signature or timestamp are not valid")
+            return { success: false}
+        }
+        console.log("Payment failed webhook: Signature and timestamp are valid")
         try {
             await this.prsService.setUnpaid(order_id);
             console.log("setUnpaid successfully.");
@@ -87,10 +102,11 @@ export class ScenarioService {
         }
     }
 
-    async deleteCustomer(cid: string) {
+    async unsubscribing(cid: string, order_id: string) {
         const customer: CustomerModel = new CustomerModel({customerId: cid})
         try {
             await this.revolutService.deleteCustomer(customer)
+            await this.prsService.setUnpaid(order_id);
             return { success: true}
         } catch (err) {
             console.error("Deletion failed:", err);
